@@ -1,0 +1,17 @@
+CONVERSATION_ID,CONVERSATION_STEP,TEXT,CONTEXT,LABEL,FEATURES,ANNOTATIONS
+1,1,"Good morning, this is Alice from your bank. How can I assist you today?","Standard opening","Not Suspicious",,
+1,2,"Hi, I have a question about my account balance.","Customer query","Not Suspicious",,
+1,3,"Sure, let me check that for you.","Providing account info","Not Suspicious",,
+2,1,"Hello, this is John from the tax office calling regarding an issue with your tax filings.","Urgent tone","Suspicious",,
+2,2,"Your account shows discrepancies that require immediate action. Please verify your account details.","Request for sensitive information","Suspicious",,
+2,3,"Failure to verify might result in legal action.","Threatening tone","Suspicious",,
+3,1,"Hi, this is your service provider. We need to update your records.","Regular call","Not Suspicious",,
+3,2,"To proceed, please provide your CVV and card details.","Request for sensitive information","Suspicious",,
+3,3,"I understand. Let me check this with my supervisor.","Delayed response","Not Suspicious",,
+4,1,"Good evening, this is Mike. We have detected unusual activity on your account.","Warning","Suspicious",,
+4,2,"Multiple attempts to login with an OTP were observed. Please confirm if you authorized these actions.","Request for OTP","Suspicious",,
+4,3,"Thank you for your cooperation.","Closure","Not Suspicious",,
+
+
+
+
