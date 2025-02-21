@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sphere } from '@react-three/drei';
 import { ShieldCheckIcon, BoltIcon, ChartBarIcon, PhoneIcon, ExclamationTriangleIcon, DocumentCheckIcon } from '@heroicons/react/24/outline';
-import architecture_scamsheild from '../public/Images/architecture_scamsheild.jpg'
+import architecture_scamsheild from '../public/Images/architecture_scamsheild.jpg';
+
 function FloatingSphere() {
   return (
     <Sphere args={[1, 32, 32]}>
@@ -64,6 +65,7 @@ function App() {
   const [audioFile, setAudioFile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const fileInputRef = useRef(null);
+  const uploadSectionRef = useRef(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -72,23 +74,33 @@ function App() {
     }
   };
 
-  const uploadSectionRef = useRef(null);
   const handleGetStarted = () => {
     uploadSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSubmit = () => {
+  // Updated handleSubmit to send request to Flask backend
+  const handleSubmit = async () => {
     if (!audioFile) return;
     
-    setAnalysis({
-      riskLevel: 'High',
-      confidence: '89%',
-      suspiciousPatterns: [
-        'Urgency in communication',
-        'Request for sensitive information',
-        'Unusual payment methods discussed'
-      ]
-    });
+    const formData = new FormData();
+    formData.append('file', audioFile);
+    
+    try {
+      const response = await fetch('http://localhost:5000/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await response.json();
+      // Expected result: { label: "Suspicious" or "Not Suspicious", reason: "...", transcript: "..." }
+      setAnalysis({
+        riskLevel: result.label === "Suspicious" ? "High" : "Low",
+        confidence: "N/A", // You can update this based on your backend output
+        suspiciousPatterns: result.reason ? result.reason.split(', ') : [],
+        transcript: result.transcript || ""
+      });
+    } catch (error) {
+      console.error("Error during analysis:", error);
+    }
   };
 
   return (
@@ -118,14 +130,13 @@ function App() {
             </p>
             <div className="flex justify-center gap-4">
               <motion.button
-              onClick={handleGetStarted}
+                onClick={handleGetStarted}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="bg-primary-500 px-8 py-3 rounded-lg font-semibold hover:bg-primary-400"
               >
                 Get Started
               </motion.button>
-             
             </div>
           </motion.div>
         </div>
@@ -214,24 +225,8 @@ function App() {
         </div>
       </section>
 
-      {/* Architecture Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-6">
-          <h2 className="text-4xl font-bold text-center mb-12">Technical Architecture</h2>
-          <div className="bg-primary-800/50 backdrop-blur-lg p-8 rounded-lg max-w-4xl mx-auto">
-            <div className="aspect-[16/9] bg-primary-900/50 rounded-lg p-8 flex items-center justify-center">
-              <img 
-              alt="architecture_scamsheild"
-              className=''
-              src={architecture_scamsheild}>
-              </img>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Upload Section */}
-      <section  ref={uploadSectionRef} className="py-20 bg-primary-800/50 backdrop-blur-lg">
+      <section ref={uploadSectionRef} className="py-20 bg-primary-800/50 backdrop-blur-lg">
         <div className="container mx-auto px-6">
           <motion.div
             initial={{ opacity: 0 }}
@@ -286,6 +281,12 @@ function App() {
                       ))}
                     </ul>
                   </div>
+                  {analysis.transcript && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold mb-2">Transcript:</h4>
+                      <p className="text-primary-200">{analysis.transcript}</p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

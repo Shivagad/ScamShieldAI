@@ -58,6 +58,6 @@ print(classification_report(y_test, y_pred))
 print("Accuracy:", accuracy_score(y_test, y_pred))
 
 # Example of predicting a new call transcript
-new_call = "Hello, this is David from the tax office. Your account has discrepancies. Please verify your bank details immediately to avoid legal consequences."
+new_call = "Hello i am ram."
 prediction = pipeline.predict([new_call])[0]
 print("\nNew Call Prediction:", "Suspicious" if prediction == 1 else "Not Suspicious")
