@@ -1,46 +1,62 @@
 import pandas as pd
 import re
-import nltk
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
+import contractions
+import csv
 
-# Download necessary NLTK resources
-nltk.download('punkt')
-nltk.download('stopwords')
-
-# ========== LOAD DATA ==========
-# Replace 'your_file.csv' with the actual file path
-df = pd.read_csv("cleaned_dataset.csv")
-
-# ========== TEXT PREPROCESSING FUNCTION ==========
-def preprocess_text(text):
+def expand_text(text):
     # Convert to lowercase
     text = text.lower()
     
-    # Handle negations (e.g., "isn't" → "is not")
-    negations = {"aren't": "are not", "isn't": "is not", "don't": "do not", "didn't": "did not", "won't": "will not",
-                 "can't": "can not", "wasn't": "was not", "shouldn't": "should not", "couldn't": "could not",
-                 "haven't": "have not", "hasn't": "has not", "weren't": "were not", "wouldn't": "would not"}
-    for neg, expanded in negations.items():
-        text = text.replace(neg, expanded)
+    # Define custom replacement patterns
+    custom_replacements = {
+        r"\bi[' ]?m\b": "i am",            # i'm, i m
+        r"\bdon'?t\b": "do not",            # don't, dont
+        r"\bur\b": "your",                 # ur -> your
+        r"\byr\b": "your",                 # yr -> your
+        r"\bu\b": "you",                   # u -> you
+        r"\br\b": "are",                   # r -> are
+        r"\bcuz\b": "because",             # cuz -> because
+        r"\bwanna\b": "want to",           # wanna -> want to
+        r"\bgonna\b": "going to",          # gonna -> going to
+        r"\bkinda\b": "kind of",           # kinda -> kind of
+        r"\bgotta\b": "got to",            # gotta -> got to
+        r"\blemme\b": "let me",            # lemme -> let me
+        r"\bbetcha\b": "bet you",          # betcha -> bet you
+        r"\bya\b": "you",                  # ya -> you
+        r"\bpls\b": "please",              # pls -> please
+        r"\bplz\b": "please",              # plz -> please
+        r"\bthx\b": "thanks",              # thx -> thanks
+        r"\bty\b": "thank you",            # ty -> thank you
+        r"\bluv\b": "love",                # luv -> love
+        r"\bidk\b": "i do not know",       # idk -> i do not know
+        r"\bimo\b": "in my opinion",       # imo -> in my opinion
+        r"\bbrb\b": "be right back",       # brb -> be right back
+        r"\bttyl\b": "talk to you later"    # ttyl -> talk to you later
+    }
+    
+    # Apply each custom replacement using regex
+    # for pattern, replacement in custom_replacements.items():
+    #     text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    
+    # Expand any remaining standard contractions using the contractions library
+    text = contractions.fix(text)
+    
+    return text
 
-    # Remove special characters, numbers, and extra spaces
-    text = re.sub(r'[^a-z\s]', '', text)
+# # Load your dataset (update the file path as needed)
+# df = pd.read_csv("cleaned_dataset.csv")
 
-    # Tokenization
-    words = word_tokenize(text)
+# # Apply the expansion function to the 'text' column
+# df["cleaned_text"] = df["text"].apply(expand_text)
 
-    # Remove stopwords (except "not" to retain negation meaning)
-    stop_words = set(stopwords.words('english')) - {"not"}
-    words = [word for word in words if word not in stop_words]
+# # Save only the 'label' and 'cleaned_text' columns to a new CSV file,
+# # wrapping all values in double quotes.
+# output_csv_path = "preprocessed_dataset.csv"
+# df[["label", "cleaned_text"]].to_csv(
+#     output_csv_path,
+#     index=False,
+#     quotechar='"',
+#     quoting=csv.QUOTE_ALL
+# )
 
-    return " ".join(words)
-
-# Apply preprocessing
-df["cleaned_text"] = df["text"].apply(preprocess_text)
-
-# Save cleaned data (optional)
-df.to_csv("cleaned_data.csv", index=False)
-
-# Print first few rows
-print(df.head())
+# print("Preprocessed data saved to:", output_csv_path)
