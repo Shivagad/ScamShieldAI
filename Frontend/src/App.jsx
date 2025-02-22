@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sphere } from '@react-three/drei';
 import { ShieldCheckIcon, BoltIcon, ChartBarIcon, PhoneIcon, ExclamationTriangleIcon, DocumentCheckIcon } from '@heroicons/react/24/outline';
-import architecture_scamsheild from '../public/Images/architecture_scamsheild.jpg';
 
 function FloatingSphere() {
   return (
@@ -78,7 +77,7 @@ function App() {
     uploadSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Updated handleSubmit to send request to Flask backend
+  // Updated handleSubmit to send request to Flask backend (/predict)
   const handleSubmit = async () => {
     if (!audioFile) return;
     
@@ -86,17 +85,17 @@ function App() {
     formData.append('file', audioFile);
     
     try {
-      const response = await fetch('http://localhost:5000/upload', {
+      const response = await fetch('http://localhost:5000/predict', {
         method: 'POST',
         body: formData
       });
       const result = await response.json();
-      // Expected result: { label: "Suspicious" or "Not Suspicious", reason: "...", transcript: "..." }
+      // Expected response: { prediction: "Fraud" or "Normal", transcription: "..." }
       setAnalysis({
-        riskLevel: result.label === "Suspicious" ? "High" : "Low",
-        confidence: "N/A", // You can update this based on your backend output
-        suspiciousPatterns: result.reason ? result.reason.split(', ') : [],
-        transcript: result.transcript || ""
+        riskLevel: result.prediction === "Fraud" ? "Suspicious Call" : "Not a Suspicious Call",
+        confidence: "N/A", // Update if backend provides confidence
+        suspiciousPatterns: [], // Update if backend provides patterns
+        transcript: result.transcription || ""
       });
     } catch (error) {
       console.error("Error during analysis:", error);
@@ -271,22 +270,14 @@ function App() {
               >
                 <h3 className="text-2xl font-bold mb-4">Analysis Results</h3>
                 <div className="text-left">
-                  <p className="mb-2">Risk Level: <span className="text-red-400">{analysis.riskLevel}</span></p>
+                  <p className="mb-2">
+                    Risk Level: <span className="text-red-400">{analysis.riskLevel}</span>
+                  </p>
                   <p className="mb-4">Confidence: {analysis.confidence}</p>
                   <div>
-                    <h4 className="font-semibold mb-2">Suspicious Patterns Detected:</h4>
-                    <ul className="list-disc list-inside">
-                      {analysis.suspiciousPatterns.map((pattern, index) => (
-                        <li key={index} className="text-primary-200">{pattern}</li>
-                      ))}
-                    </ul>
+                    <h4 className="font-semibold mb-2">Transcript:</h4>
+                    <p className="text-primary-200">{analysis.transcript}</p>
                   </div>
-                  {analysis.transcript && (
-                    <div className="mt-4">
-                      <h4 className="font-semibold mb-2">Transcript:</h4>
-                      <p className="text-primary-200">{analysis.transcript}</p>
-                    </div>
-                  )}
                 </div>
               </motion.div>
             )}

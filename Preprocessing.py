@@ -1,23 +1,17 @@
-from pydub import AudioSegment
-from pydub.effects import normalize
-import noisereduce as nr
 import librosa
+import noisereduce as nr
 import soundfile as sf
 
-# Load and convert to mono
-audio = AudioSegment.from_file("harvard.wav").set_channels(1)
+# Step 1: Load the audio file
+audio_data, sr = librosa.load('audio.mp3', sr=None)
 
-# Normalize volume
-audio = normalize(audio)
+# Step 2: Identify a noise-only segment (e.g., first second)
+noise_sample = audio_data[0:int(sr * 1)]  # Adjust based on your file
 
-# Export intermediate processed audio
-audio.export("normalized_audio.wav", format="wav")
+# Step 3: Reduce background noise
+reduced_noise_audio = nr.reduce_noise(y=audio_data, sr=sr, y_noise=noise_sample)
 
-# Load for noise reduction
-y, sr = librosa.load("normalized_audio.wav", sr=16000)  # Resample to 16kHz
+# Step 4: Save the cleaned audio file
+sf.write('output_clean_audio.wav', reduced_noise_audio, sr)
 
-# Apply noise reduction
-y_denoised = nr.reduce_noise(y=y, sr=sr)
-
-# Save final cleaned audio
-sf.write("final_audio.wav", y_denoised, sr)
+print("Noise reduction complete. Processed audio saved as 'output_clean_audio.wav'.")
