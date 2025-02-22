@@ -7,7 +7,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report
 
 # Load dataset
-df = pd.read_csv("cleaned_dataset.csv")  # Ensure dataset.csv is in the same folder
+df = pd.read_csv("preprocessed_dataset.csv")  # Ensure dataset.csv is in the same folder
 
 # Convert labels to binary (fraud -> 1, normal -> 0)
 df['label'] = df['label'].apply(lambda x: 1 if x == 'fraud' else 0)
