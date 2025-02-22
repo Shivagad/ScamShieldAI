@@ -1,7 +1,7 @@
 import whisper
 
 # Load Whisper model once (Global)
-model = whisper.load_model("large")
+model = whisper.load_model("small")
 
 def transcribe_audio(audio_path):
     """Transcribes and translates an audio file using Whisper with auto language detection."""
