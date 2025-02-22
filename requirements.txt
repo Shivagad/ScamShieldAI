@@ -7,3 +7,4 @@ soundfile
 openai-whisper
 transformers
 torch
+

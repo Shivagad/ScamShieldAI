@@ -1,63 +1,46 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
+import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 
-# Load the dataset (ensure the file path is correct)
-df = pd.read_csv("BETTER30.csv")
+# Load dataset
+df = pd.read_csv("cleaned_dataset.csv")  # Ensure dataset.csv is in the same folder
 
-# Display first few rows (optional)
-print("Raw Data:")
-print(df.head())
+# Convert labels to binary (fraud -> 1, normal -> 0)
+df['label'] = df['label'].apply(lambda x: 1 if x == 'fraud' else 0)
 
-# Define a helper function to convert labels to binary:
-# Suspicious = 1, Not Suspicious = 0
-def convert_label(label):
-    return 1 if label.strip().lower() == "suspicious" else 0
+# Track best accuracy and model
+best_accuracy = 0.0
+best_model = None
 
-# Apply conversion on the LABEL column if it's not null (ignore missing values)
-df['LABEL'] = df['LABEL'].fillna("Not Suspicious")
-df["binary_label"] = df["LABEL"].apply(convert_label)
+# Run training 100 times
+for i in range(100):
+    print(f"🔄 Training Iteration {i+1}/100")
 
-# Aggregate conversation steps by concatenating all text entries per conversation
-grouped = df.groupby("CONVERSATION_ID").agg({
-    "TEXT": lambda texts: " ".join(texts),
-    "binary_label": "max"  # If any step is suspicious, max() will be 1
-}).reset_index()
+    # Split dataset into train and test sets
+    X_train, X_test, y_train, y_test = train_test_split(df['text'], df['label'], test_size=0.2, random_state=i)
 
-# Rename for clarity
-grouped.rename(columns={"TEXT": "conversation_text", "binary_label": "target"}, inplace=True)
+    # Create a text classification pipeline with n-grams (bigram for better context)
+    model = make_pipeline(TfidfVectorizer(ngram_range=(1,2)), LogisticRegression())
 
-print("\nAggregated Data:")
-print(grouped.head())
+    # Train the model
+    model.fit(X_train, y_train)
 
-# Features (X) and target labels (y)
-X = grouped["conversation_text"]
-y = grouped["target"]
+    # Evaluate the model
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
 
-# Split the data into training and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    print(f"📊 Accuracy for Iteration {i+1}: {accuracy:.4f}")
 
-# Create a pipeline: TF-IDF vectorization and Logistic Regression classifier
-pipeline = Pipeline([
-    ("tfidf", TfidfVectorizer(stop_words="english")),
-    ("clf", LogisticRegression(solver="lbfgs", max_iter=1000))
-])
+    # Store the best model
+    if accuracy > best_accuracy:
+        best_accuracy = accuracy
+        best_model = model
+        print(f"✅ New Best Accuracy: {best_accuracy:.4f} (Model Saved)")
 
-# Train the model
-pipeline.fit(X_train, y_train)
-
-# Predict on the test set
-y_pred = pipeline.predict(X_test)
-
-# Output performance metrics
-print("\nClassification Report:")
-print(classification_report(y_test, y_pred))
-print("Accuracy:", accuracy_score(y_test, y_pred))
-
-# Example of predicting a new call transcript
-new_call = "Hello i am ram."
-prediction = pipeline.predict([new_call])[0]
-print("\nNew Call Prediction:", "Suspicious" if prediction == 1 else "Not Suspicious")
+# Save the best trained model
+joblib.dump(best_model, "best_fraud_detection_model.pkl")
+print(f"💾 Best Model saved as 'best_fraud_detection_model.pkl' with Accuracy: {best_accuracy:.4f}")
