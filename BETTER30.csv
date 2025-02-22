@@ -11,7 +11,3 @@ CONVERSATION_ID,CONVERSATION_STEP,TEXT,CONTEXT,LABEL,FEATURES,ANNOTATIONS
 4,1,"Good evening, this is Mike. We have detected unusual activity on your account.","Warning","Suspicious",,
 4,2,"Multiple attempts to login with an OTP were observed. Please confirm if you authorized these actions.","Request for OTP","Suspicious",,
 4,3,"Thank you for your cooperation.","Closure","Not Suspicious",,
-
-
-
-
