@@ -1,0 +1,9 @@
+Flask
+Flask-Cors
+noisereduce
+librosa
+soundfile
+whisper
+contractions
+google-generativeai
+joblib

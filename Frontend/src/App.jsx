@@ -2,7 +2,15 @@ import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Sphere } from '@react-three/drei';
-import { ShieldCheckIcon, BoltIcon, ChartBarIcon, PhoneIcon, ExclamationTriangleIcon, DocumentCheckIcon } from '@heroicons/react/24/outline';
+import {
+  ShieldCheckIcon,
+  BoltIcon,
+  ChartBarIcon,
+  PhoneIcon,
+  ExclamationTriangleIcon,
+  DocumentCheckIcon,
+  XMarkIcon
+} from '@heroicons/react/24/outline';
 
 function FloatingSphere() {
   return (
@@ -53,23 +61,26 @@ const workflowSteps = [
   }
 ];
 
-const statistics = [
-  { value: "98%", label: "Accuracy Rate" },
-  { value: "2M+", label: "Calls Analyzed" },
-  { value: "50K+", label: "Scams Prevented" },
-  { value: "$10M+", label: "Money Saved" }
-];
-
 function App() {
   const [audioFile, setAudioFile] = useState(null);
+  const [recordedAudio, setRecordedAudio] = useState(null);
   const [analysis, setAnalysis] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   const fileInputRef = useRef(null);
   const uploadSectionRef = useRef(null);
+
+  // Refs for recording
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file && file.type.includes('audio')) {
       setAudioFile(file);
+      // Clear any previous recording if present
+      setRecordedAudio(null);
     }
   };
 
@@ -77,28 +88,75 @@ function App() {
     uploadSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Updated handleSubmit to send request to Flask backend (/predict)
-  const handleSubmit = async () => {
-    if (!audioFile) return;
-    
+  // Analyze either the uploaded file or recorded audio
+  const handleSubmit = async (fileToAnalyze) => {
+    if (!fileToAnalyze) return;
+    setIsAnalyzing(true);
     const formData = new FormData();
-    formData.append('file', audioFile);
-    
+    formData.append('file', fileToAnalyze);
     try {
       const response = await fetch('http://localhost:5000/predict', {
         method: 'POST',
         body: formData
       });
       const result = await response.json();
-      // Expected response: { prediction: "Fraud" or "Normal", transcription: "..." }
       setAnalysis({
         riskLevel: result.prediction === "Fraud" ? "Suspicious Call" : "Not a Suspicious Call",
         confidence: "N/A", // Update if backend provides confidence
-        suspiciousPatterns: [], // Update if backend provides patterns
-        transcript: result.transcription || ""
+        suspiciousPatterns: [],
+        transcript: result.transcription || "",
+        gemini_analysis:result.gemini_analysis || ""
       });
     } catch (error) {
       console.error("Error during analysis:", error);
+    }
+    setIsAnalyzing(false);
+  };
+
+  const handleAnalyzeUploaded = () => {
+    handleSubmit(audioFile);
+  };
+
+  const handleAnalyzeRecording = () => {
+    // Convert recorded blob to File before analysis
+    const file = new File([recordedAudio], "recording.mp3", { type: 'audio/mp3' });
+    handleSubmit(file);
+  };
+
+  // Recording functionality using MediaRecorder API
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const options = { mimeType: 'audio/mp3' };
+      try {
+        mediaRecorderRef.current = new MediaRecorder(stream, options);
+      } catch (e) {
+        console.warn("audio/mp3 not supported, falling back to default", e);
+        mediaRecorderRef.current = new MediaRecorder(stream);
+      }
+      audioChunksRef.current = [];
+      mediaRecorderRef.current.ondataavailable = event => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
+        setRecordedAudio(audioBlob);
+        // Clear any uploaded file if present
+        setAudioFile(null);
+      };
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
     }
   };
 
@@ -122,10 +180,10 @@ function App() {
             transition={{ duration: 0.8 }}
             className="text-center"
           >
-            <h1 className="text-6xl font-bold mb-6">VoiceGuardian</h1>
+            <h1 className="text-6xl font-bold mb-6">ScamSheild AI</h1>
             <p className="text-xl mb-8 max-w-2xl mx-auto">
               Protect yourself from fraudulent calls using our advanced AI-powered analysis. 
-              Upload your call recordings and let our ML model identify potential scam attempts.
+              Upload your call recordings or record directly in your browser, and let our ML model identify potential scam attempts.
             </p>
             <div className="flex justify-center gap-4">
               <motion.button
@@ -155,20 +213,6 @@ function App() {
               costing victims millions of dollars annually. ScamShield leverages cutting-edge 
               AI technology to protect you from these evolving threats.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {statistics.map((stat, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="text-center"
-                >
-                  <h3 className="text-4xl font-bold text-primary-300 mb-2">{stat.value}</h3>
-                  <p className="text-primary-100">{stat.label}</p>
-                </motion.div>
-              ))}
-            </div>
           </motion.div>
         </div>
       </section>
@@ -224,19 +268,17 @@ function App() {
         </div>
       </section>
 
-      {/* Upload Section */}
+      {/* Upload / Record Section */}
       <section ref={uploadSectionRef} className="py-20 bg-primary-800/50 backdrop-blur-lg">
         <div className="container mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            className="max-w-2xl mx-auto text-center"
-          >
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} className="max-w-2xl mx-auto text-center">
             <h2 className="text-4xl font-bold mb-8">Analyze Your Call</h2>
+            
+            {/* File Upload Option */}
             <div className="space-y-6">
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-primary-300 rounded-lg p-12 cursor-pointer hover:border-primary-200 transition-colors"
+                className="border-2 border-dashed border-primary-300 rounded-lg p-12 cursor-pointer hover:border-primary-200 transition-colors flex justify-between items-center"
               >
                 <input
                   type="file"
@@ -245,37 +287,88 @@ function App() {
                   accept="audio/*"
                   className="hidden"
                 />
-                <p className="text-lg">
-                  {audioFile ? audioFile.name : "Click to upload audio file"}
-                </p>
+                {audioFile ? (
+                  <div className="flex items-center gap-2 w-full justify-between">
+                    <span className="text-lg">{audioFile.name}</span>
+                    <button onClick={(e) => { e.stopPropagation(); setAudioFile(null); }}>
+                      <XMarkIcon className="h-5 w-5 text-red-500" />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-lg">Click to upload audio file</p>
+                )}
               </div>
               
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={handleSubmit}
-                className="bg-primary-500 px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors"
-                disabled={!audioFile}
+                onClick={handleAnalyzeUploaded}
+                className="bg-primary-500 px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors flex items-center justify-center gap-2"
+                disabled={!audioFile || isAnalyzing}
               >
-                Analyze Recording
+                {isAnalyzing ? (
+                  <div className="w-6 h-6 border-4 border-t-transparent border-white rounded-full animate-spin" />
+                ) : "Analyze Recording"}
               </motion.button>
+            </div>
+
+            {/* Recording Option */}
+            <div className="space-y-6 mt-12">
+              <h3 className="text-2xl font-semibold">Or Record Audio</h3>
+              {!isRecording ? (
+                <button
+                  onClick={handleStartRecording}
+                  className="bg-primary-500 ml-10 px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors"
+                >
+                  Start Recording
+                </button>
+              ) : (
+                <button
+                  onClick={handleStopRecording}
+                  className="bg-red-500 px-8 py-3 rounded-lg font-semibold hover:bg-red-400 transition-colors"
+                >
+                  Stop Recording
+                </button>
+              )}
+              {recordedAudio && (
+                <div className="mt-4 relative inline-block">
+                  <audio controls src={URL.createObjectURL(recordedAudio)} className="w-full" />
+                  <button 
+                    onClick={() => setRecordedAudio(null)}
+                    className="absolute top-0 right-0 bg-red-500 p-1 rounded-full"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleAnalyzeRecording}
+                    className="bg-primary-500 px-8 py-3 rounded-lg font-semibold hover:bg-primary-400 transition-colors mt-4 flex items-center justify-center gap-2"
+                    disabled={isAnalyzing}
+                  >
+                    {isAnalyzing ? (
+                      <div className="w-6 h-6 border-4 border-t-transparent border-white rounded-full animate-spin" />
+                    ) : "Upload Recording"}
+                  </motion.button>
+                </div>
+              )}
             </div>
 
             {/* Analysis Results */}
             {analysis && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-12 bg-primary-800/50 backdrop-blur-lg p-6 rounded-lg"
-              >
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-12 bg-primary-800/50 backdrop-blur-lg p-6 rounded-lg">
                 <h3 className="text-2xl font-bold mb-4">Analysis Results</h3>
                 <div className="text-left">
                   <p className="mb-2">
                     Risk Level: <span className="text-red-400">{analysis.riskLevel}</span>
                   </p>
-                  <p className="mb-4">Confidence: {analysis.confidence}</p>
+                  {/* <p className="mb-4">Confidence: {analysis.confidence}</p> */}
                   <div>
                     <h4 className="font-semibold mb-2">Transcript:</h4>
+                    <p className="text-primary-200">{analysis.transcript}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-2">Analysis & Feedba:</h4>
                     <p className="text-primary-200">{analysis.transcript}</p>
                   </div>
                 </div>

@@ -34,7 +34,7 @@ def expand_text(text):
         r"\bttyl\b": "talk to you later"    # ttyl -> talk to you later
     }
     
-    # Apply each custom replacement using regex
+    # Apply each custom rep lacement using regex
     # for pattern, replacement in custom_replacements.items():
     #     text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
     
