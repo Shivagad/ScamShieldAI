@@ -6,6 +6,7 @@ or just open an issue with the label "enhancement".
 Don't forget to give this project a star for additional support ;)
 Maybe you can mention me or this repo in the acknowledgements too
 -->
+
 <div align="center">
 
   <img src="https://res.cloudinary.com/dtobcdrww/image/upload/v1740831156/Screenshot_2025-03-01_171255_d4t58v.png" alt="logo" width="auto" height="auto" />
