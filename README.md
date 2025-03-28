@@ -10,6 +10,7 @@ Maybe you can mention me or this repo in the acknowledgements too
 <div align="center">
 
   <img src="https://res.cloudinary.com/dtobcdrww/image/upload/v1740831156/Screenshot_2025-03-01_171255_d4t58v.png" alt="logo" width="auto" height="auto" />
+   <img src="https://github.com/Shivagad/ScamShieldAI/blob/main/icse.jpg" alt="logo" width="auto" height="auto" />
   <h1></h1>
 <p>
 ScamShield is an intelligent platform designed to detect suspicious calls and prevent fraud by analyzing call recordings using advanced AI techniques.
